@@ -2964,6 +2964,21 @@ auth.onAuthStateChanged(user => {
                 </tr>`;
             });
         }
+        // Funções de suporte para inicialização e reset da aba de Combustível
+function cancelarEdicaoCombustivel() {
+    limparFormularioAbastecimento();
+    limparFormularioViatura();
+    limparFormularioCartao();
+    limparFormularioRecarga();
+}
+
+function renderizarCombustivel() {
+    renderizarTabelaViaturas();
+    renderizarTabelaCartoes();
+    renderizarTabelaRecargas();
+    filtrarAbastecimentos();
+    calcularMetricasEIndicadores();
+}
             
     </script>
         
