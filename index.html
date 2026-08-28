@@ -3006,6 +3006,7 @@ auth.onAuthStateChanged(user => {
             });
 
             // Injeta o HTML acumulado de uma só vez
+           // Injeta o HTML acumulado de uma só vez
             corpo.innerHTML = htmlTabela;
         }
 
@@ -3015,38 +3016,21 @@ auth.onAuthStateChanged(user => {
             renderizarHistoricoRondas();
         }
 
-                // CORREÇÃO 2: Acumular o HTML na variável (Você já tinha feito isto)
-                htmlTabela += `<tr>
-                    <td><strong>${dataBr}</strong><br><small style="color:var(--accent);">${r.hora}</small></td>
-                    <td><strong style="color:#0f1c2e;">${nomeOperador.toUpperCase()}</strong></td>
-                    <td>
-                        <strong style="color:var(--primary);">${r.posto}</strong><br>
-                        <small style="color:#64748b;">No local: ${fiscalizado}${matFiscalizado}</small>
-                    </td>
-                    <td><span class="badge-status badge-ativa" style="background:#e0f2fe; color:#0369a1;">${r.motivo || 'Rotina'}</span></td>
-                    <td>VTR: <strong>${placaVtr}</strong><br><small>KM: ${r.km}</small></td>
-                    <td><small style="color:#475569;">${r.obs || '-'}</small></td>
-                </tr>`;
-            });
-
-            // CORREÇÃO 3: Injetar todo o HTML acumulado no DOM de uma só vez (FORA do laço)
-            corpo.innerHTML = htmlTabela;
-        }
         // Funções de suporte para inicialização e reset da aba de Combustível
-function cancelarEdicaoCombustivel() {
-    limparFormularioAbastecimento();
-    limparFormularioViatura();
-    limparFormularioCartao();
-    limparFormularioRecarga();
-}
+        function cancelarEdicaoCombustivel() {
+            limparFormularioAbastecimento();
+            limparFormularioViatura();
+            limparFormularioCartao();
+            limparFormularioRecarga();
+        }
 
-function renderizarCombustivel() {
-    renderizarTabelaViaturas();
-    renderizarTabelaCartoes();
-    renderizarTabelaRecargas();
-    filtrarAbastecimentos();
-    calcularMetricasEIndicadores();
-}
+        function renderizarCombustivel() {
+            renderizarTabelaViaturas();
+            renderizarTabelaCartoes();
+            renderizarTabelaRecargas();
+            filtrarAbastecimentos();
+            calcularMetricasEIndicadores();
+        }
             
     </script>
 </body>
