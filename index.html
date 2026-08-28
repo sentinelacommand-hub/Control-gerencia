@@ -1230,8 +1230,10 @@ function recuperarSenhaGerencia() {
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
             
             document.getElementById('view-' + id).classList.add('active');
-            if(window.event && window.event.currentTarget) {
-                window.event.currentTarget.classList.add('active');
+            // Seleciona o botão dinamicamente através do ID passado sem depender de window.event global
+            const botaoAtivo = document.querySelector(`.nav-btn[onclick*="${id}"]`);
+            if (botaoAtivo) {
+                botaoAtivo.classList.add('active');
             } else {
                 if(id === 'administracao') document.getElementById('btn-menu-admin').classList.add('active');
                 if(id === 'combustivel') document.getElementById('btn-menu-combustivel').classList.add('active');
@@ -1276,7 +1278,8 @@ function recuperarSenhaGerencia() {
                 document.getElementById('postos-p-total').innerText = listaPostos.length;
             });
 
-           fs.collection('rondas').orderBy('timestamp', 'desc').onSnapshot(snap => {
+          // Limita aos 1000 registros mais recentes para manter a performance estável
+           fs.collection('rondas').orderBy('timestamp', 'desc').limit(1000).onSnapshot(snap => {
                 rondas = snap.docs.map(d => d.data());
                 desenharCalorMatriz(); 
                 renderizarHistoricoRondas();
@@ -2895,7 +2898,7 @@ auth.onAuthStateChanged(user => {
             const dataFiltro = document.getElementById('filtro-data-historico').value;
             
             if (!corpo) return;
-            corpo.innerHTML = "";
+            corpo.innerHTML = ""; // Limpa a tabela antes de começar
 
             const rondasFiltradas = rondas.filter(r => {
                 // 1. Puxa APENAS o nome do Supervisor logado (Autor da ronda)
@@ -2918,6 +2921,9 @@ auth.onAuthStateChanged(user => {
                 corpo.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#7f8c8d;">Nenhuma ronda encontrada para os filtros selecionados.</td></tr>`;
                 return;
             }
+
+            // CORREÇÃO 1: Declarar a variável ANTES do laço começar
+            let htmlTabela = "";
 
             rondasFiltradas.forEach(r => {
                 // 1. Define o Autor da Ronda e tenta puxar a viatura
@@ -2951,7 +2957,8 @@ auth.onAuthStateChanged(user => {
 
                 const dataBr = r.data ? r.data.split('-').reverse().join('/') : '-';
 
-                corpo.innerHTML += `<tr>
+                // CORREÇÃO 2: Acumular o HTML na variável (Você já tinha feito isto)
+                htmlTabela += `<tr>
                     <td><strong>${dataBr}</strong><br><small style="color:var(--accent);">${r.hora}</small></td>
                     <td><strong style="color:#0f1c2e;">${nomeOperador.toUpperCase()}</strong></td>
                     <td>
@@ -2963,6 +2970,9 @@ auth.onAuthStateChanged(user => {
                     <td><small style="color:#475569;">${r.obs || '-'}</small></td>
                 </tr>`;
             });
+
+            // CORREÇÃO 3: Injetar todo o HTML acumulado no DOM de uma só vez (FORA do laço)
+            corpo.innerHTML = htmlTabela;
         }
         // Funções de suporte para inicialização e reset da aba de Combustível
 function cancelarEdicaoCombustivel() {
