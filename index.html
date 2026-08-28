@@ -843,14 +843,23 @@
                 <div class="tabela-controles" style="display:flex; gap:10px; margin-bottom:15px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
                     <div style="flex: 2;">
                         <label style="font-size: 12px; font-weight: bold; color: var(--secondary); display: block; margin-bottom: 5px;">Busca Geral:</label>
-                        <input type="text" id="busca-historico" placeholder="🔍 Buscar por operador, posto ou viatura..." oninput="renderizarHistoricoRondas()" style="margin-bottom:0; width: 100%;">
+                        <input type="text" id="busca-historico" placeholder="🔍 Buscar por operador, posto ou viatura..." oninput="paginaAtualHistorico=1; renderizarHistoricoRondas()" style="margin-bottom:0; width: 100%;">
                     </div>
                     <div style="flex: 1;">
                         <label style="font-size: 12px; font-weight: bold; color: var(--secondary); display: block; margin-bottom: 5px;">Filtrar por Data:</label>
-                        <input type="date" id="filtro-data-historico" onchange="renderizarHistoricoRondas()" style="margin-bottom:0; width: 100%;">
+                        <input type="date" id="filtro-data-historico" onchange="paginaAtualHistorico=1; renderizarHistoricoRondas()" style="margin-bottom:0; width: 100%;">
                     </div>
                     <div style="display: flex; align-items: flex-end;">
-                        <button class="secondary" onclick="document.getElementById('filtro-data-historico').value=''; renderizarHistoricoRondas();" style="height: 42px;">Limpar Data</button>
+                        <button class="secondary" onclick="document.getElementById('filtro-data-historico').value=''; paginaAtualHistorico=1; renderizarHistoricoRondas();" style="height: 42px;">Limpar Data</button>
+                    </div>
+                </div>
+
+                <!-- NOVO: Controles de Paginação -->
+                <div class="tabela-controles" style="margin-bottom: 15px; justify-content: flex-end;">
+                    <div class="paginacao-container">
+                        <button class="paginacao-btn" id="btn-pag-hist-anterior" onclick="mudarPaginaHistorico(-1)">◀</button>
+                        <span id="indicador-paginacao-historico">Página 1 de 1</span>
+                        <button class="paginacao-btn" id="btn-pag-hist-proxima" onclick="mudarPaginaHistorico(1)">▶</button>
                     </div>
                 </div>
 
@@ -1052,6 +1061,7 @@ const registrosPorPagina = 10;
 
 // ADICIONADO: Controle da página atual do módulo Administrativo
 let paginaAtualAdmin = 1;
+let paginaAtualHistorico = 1;
 let postosFiltrados = [];
 let usuarioLogadoPermissao = "leitor";
 
@@ -2917,15 +2927,40 @@ auth.onAuthStateChanged(user => {
                 return bateTexto && bateData;
             });
 
-            if (rondasFiltradas.length === 0) {
+           if (rondasFiltradas.length === 0) {
                 corpo.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#7f8c8d;">Nenhuma ronda encontrada para os filtros selecionados.</td></tr>`;
+                
+                // Desativa os botões caso a busca não retorne nada
+                if(document.getElementById('btn-pag-hist-anterior')) {
+                    document.getElementById('btn-pag-hist-anterior').disabled = true;
+                    document.getElementById('btn-pag-hist-proxima').disabled = true;
+                    document.getElementById('indicador-paginacao-historico').innerText = `Página 1 de 1`;
+                }
                 return;
             }
 
-            // CORREÇÃO 1: Declarar a variável ANTES do laço começar
+            // --- LÓGICA DE PAGINAÇÃO ---
+            const totalPaginasHist = Math.ceil(rondasFiltradas.length / registrosPorPagina) || 1;
+            
+            // Trava a página atual para não exceder o limite caso a busca diminua a quantidade de páginas
+            if (paginaAtualHistorico > totalPaginasHist) paginaAtualHistorico = totalPaginasHist;
+            
+            // Atualiza o estado dos botões e o texto na interface
+            if(document.getElementById('btn-pag-hist-anterior')) {
+                document.getElementById('btn-pag-hist-anterior').disabled = (paginaAtualHistorico === 1);
+                document.getElementById('btn-pag-hist-proxima').disabled = (paginaAtualHistorico === totalPaginasHist);
+                document.getElementById('indicador-paginacao-historico').innerText = `Página ${paginaAtualHistorico} de ${totalPaginasHist}`;
+            }
+
+            // Fatia o array gigante para pegar apenas os 10 registros da página atual
+            const indiceInicio = (paginaAtualHistorico - 1) * registrosPorPagina;
+            const indiceFim = indiceInicio + registrosPorPagina;
+            const rondasExibidas = rondasFiltradas.slice(indiceInicio, indiceFim);
+
             let htmlTabela = "";
 
-            rondasFiltradas.forEach(r => {
+            // O laço agora percorre apenas 'rondasExibidas' (10 itens) em vez de 'rondasFiltradas' (milhares)
+            rondasExibidas.forEach(r => {
                 // 1. Define o Autor da Ronda e tenta puxar a viatura
                 let nomeOperador = "Operador Oculto/Excluído";
                 let placaVtr = r.vtr || r.placaViatura || ""; // Plano A: Tenta puxar a placa salva na própria ronda
@@ -2956,6 +2991,29 @@ auth.onAuthStateChanged(user => {
                 const matFiscalizado = r.colaboradorMat && r.colaboradorMat !== "N/A" ? ` (Mat: ${r.colaboradorMat})` : "";
 
                 const dataBr = r.data ? r.data.split('-').reverse().join('/') : '-';
+
+                htmlTabela += `<tr>
+                    <td><strong>${dataBr}</strong><br><small style="color:var(--accent);">${r.hora}</small></td>
+                    <td><strong style="color:#0f1c2e;">${nomeOperador.toUpperCase()}</strong></td>
+                    <td>
+                        <strong style="color:var(--primary);">${r.posto}</strong><br>
+                        <small style="color:#64748b;">No local: ${fiscalizado}${matFiscalizado}</small>
+                    </td>
+                    <td><span class="badge-status badge-ativa" style="background:#e0f2fe; color:#0369a1;">${r.motivo || 'Rotina'}</span></td>
+                    <td>VTR: <strong>${placaVtr}</strong><br><small>KM: ${r.km}</small></td>
+                    <td><small style="color:#475569;">${r.obs || '-'}</small></td>
+                </tr>`;
+            });
+
+            // Injeta o HTML acumulado de uma só vez
+            corpo.innerHTML = htmlTabela;
+        }
+
+        // NOVO: Função chamada pelos botões de Voltar e Avançar página
+        function mudarPaginaHistorico(direcao) {
+            paginaAtualHistorico += direcao;
+            renderizarHistoricoRondas();
+        }
 
                 // CORREÇÃO 2: Acumular o HTML na variável (Você já tinha feito isto)
                 htmlTabela += `<tr>
